@@ -137,3 +137,45 @@ flag=0;
  fprintf('\n');
  end
 %%
+% 关于并行8位输入将7个乘法器优化成一个乘法器的分析
+%%
+% 
+% <<gf_mul_1.png>>
+% 
+%%
+% 
+% <<gf_mul_2.png>>
+% 
+%%
+% 生成 矩阵D（13,8,16） 其中13表示m值，8为并行度，16为伴随式数(对于每一列，高位在上，低位在下）
+%从图片<<gf_mul_1.png>>可以得到D矩阵，下面是生成该矩阵过程
+
+D = zeros(13,8,16);
+%读取GF(2^13)的元素,组成D矩阵
+for i=1:16
+    % 第 1 列
+      D(:,1,i)=[0 0 0 0 0 0 0 0 0 0 0 0 1]';
+    % 第 2-8 列
+    for j=2:8
+        q=gf_elements(1,(j-1)*i);
+        for k=1:13
+             r=mod(q,2);
+             q=fix(q / 2);
+             D(14-k,j,i)=r;
+        end
+    end
+end
+%显示每个乘法器的结果表达
+  for i=1:16
+    fprintf('for S%d:\n',i);
+      for j = 1: 13
+          fprintf('m[%d]=',13-j);
+              for k = 1:8
+                    if D(j,k,i)==1
+                         fprintf('b[%d] + ',8-k);
+                    end
+              end
+               fprintf(';\n');
+      end
+  end
+  %%
