@@ -31,10 +31,11 @@ for i=1:16
     end
 end
 %%
-%设输入变量B=b0 + b1*a +b2 *a^2 +b3 * a^3 +.....+b(m-1) * a^(m-1);(此处m=12)
-%常量为Ai为A矩阵中的第i行；设C=B *Ai= m0 + m1*a +m2 *a^2 +m3 * a^3 +.....+m(m-1) *a^(m-1)
+%设输入变量B=b0 + b1*a +b2 *a^2 +b3 * a^3 +.....+b(m-1) * a^(m-1);(此处m=13)
+%常量为Ai为A矩阵中的第i行；
+%设C=B *Ai= m0 + m1*a +m2 *a^2 +m3 * a^3 +.....+m13 *a^13 +....m24 *a ^24;
 %注：此时还没讲C对最小多项式m1(x)=x^13 + x^4 +x ^3 + x^1 +1 取模！！ 
-%下面程序为生成mi的表达式（用bi表示）
+%下面程序为生成mi的表达式（用mi表示）
  for i=1:16
     fprintf('for S%d:\n',i);
       for n = 1: 25
@@ -63,3 +64,76 @@ R=[M1 r3];
 F=R^13;
 %对F矩阵每个元素都对2取模
 F= mod(F,2);
+% 由 c=(m0 + m1*a +m2 *a^2 +m3 * a^3 +.....+m13 *a^13 +....m24 *a^24)mod(a^13 + a^4 +a ^3 + a^1 +1)=(m13 *a^13 +....m24 *a^24)mod(a^13 + a^4 +a ^3 + a^1 +1) +(m0 + m1*a +m2 *a^2 +m3 * a^3 +.....+m12 *a^12)
+% c=g[coeff] * M;  M=[m24 m23 ....m1 m0];g[coeff]系数高位在前，低位在后，如下
+temp=eye(13);
+for i=1:13
+    for j=1:13
+        if i==j
+            temp(i,j)=0;
+            temp(i,14-j)=1;
+        end
+    end
+end
+g = [F,temp];
+%由于M只有25项，而g为13 * 26的系数矩阵，所以M前面需要补上一个零,也就是将g第一列去掉即可。
+G = g(:,2:26);
+%%
+% 显示c的表达式
+ fprintf('不优化表达式：\n');
+for i=1:13
+    fprintf('c[%d]=',13-i);
+    for j=1:25
+        if G(i,j)==1
+            fprintf('m[%d] ^',25-j);
+        end
+    end
+    fprintf(';\n');
+end
+%%
+% 优化：寻找共享表达式
+S_count=zeros(13,12); %用来显示共享表达式的次数
+ fprintf('优化,寻找共享表达式：\n');
+for k=1:13
+      fprintf('c[%d] = ',13-k);
+       for n=1:12
+           for m=1:12
+               if m>n   % 可以修改选择不同的共享表达式%  m>n+1
+                   if G(k,n)==1 && G(k,m)==1 
+                    fprintf('(m[%d] + m[%d]) ^ ',25-n,25-m);
+                    G(k,n)=0;
+                    G(k,m)=0;
+                    S_count(n,m)= S_count(n,m) +1;
+                   else 
+                   end
+               else 
+               end
+           end
+       end
+  %显示没有共享的项
+       for p=1:25
+        if  G(k,p) == 1
+            fprintf('m[%d] ^ ',25-p);
+        end
+       end
+       fprintf(';\n');
+end  
+%显示共享次数
+flag=0;
+ fprintf('共享次数：\n');
+ for m=1:3
+  for i=1:13
+     for j=1:12
+         if S_count(i,j)==m
+             if flag==0
+             fprintf('共享 %d 次：(m[%d] + m[%d]) ',m,25-i,25-j);
+             flag =1;
+             else  fprintf(' (m[%d] + m[%d]) ',25-i,25-j);
+             end
+         end
+     end
+  end
+   flag=0;
+ fprintf('\n');
+ end
+%%
