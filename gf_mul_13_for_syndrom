@@ -174,10 +174,10 @@ fprintf('***********************************************************************
   for i=1:16
     fprintf('for S%d:\n',i);
       for j = 1: 13
-          fprintf('m[%d]=',13-j);
+          fprintf('assign B_%d_1[%d] =',13-j);
               for k = 1:8
                     if D(j,k,i)==1
-                         fprintf('b[%d] + ',8-k);
+                         fprintf('din[%d] + ',8-k);
                     end
               end
                fprintf(';\n');
@@ -189,14 +189,14 @@ S_count_2=zeros(13,8,16); %用来显示共享表达式的次数
 fprintf('**********************************************************************************************\n');
  fprintf('优化,寻找共享表达式：\n');
  for i=1:16 
-     fprintf('for S%d:\n',i);
+     fprintf('//for S%d:\n',i);
    for k=1:13
-      fprintf('m[%d] = ',13-k);
+      fprintf('assign B_%d_1[%d] = ',i,13-k);
        for n=1:8
            for m=1:8
                if m>n   % 可以修改选择不同的共享表达式%  m>n+1
                    if D(k,n,i)==1 && D(k,m,i)==1 
-                    fprintf('(b[%d] + b[%d]) ^ ',8-n,8-m);
+                    fprintf('(din[%d] + din[%d]) ^ ',8-n,8-m);
                     D(k,n,i)=0;
                     D(k,m,i)=0;
                     S_count_2(n,m,i)= S_count_2(n,m,i) +1;
@@ -207,14 +207,16 @@ fprintf('***********************************************************************
   %显示没有共享的项
        for p=1:8
         if  D(k,p,i) == 1
-            fprintf('b[%d] ^ ',8-p);
+            fprintf('din[%d] ^ ',8-p);
         end
        end
        fprintf(';\n');
-   end 
+   end
+   fprintf('assign C_%d = B_%d ^ B_%d_1;\n',i,i,i);
  end
 %显示共享次数
 fprintf('**********************************************************************************************\n');
+%对每个Si的共享情况
 flag=0;
  fprintf('共享次数：\n');
  for n=1:16 
@@ -224,9 +226,9 @@ flag=0;
            for j=1:8
             if S_count_2(i,j,n)==m
              if flag==0
-             fprintf('共享 %d 次：(b[%d] + b[%d]) ',m,8-i,8-j);
+             fprintf('共享 %d 次：(din[%d] + din[%d]) ',m,8-i,8-j);
              flag =1;
-             else  fprintf(' (b[%d] + b[%d]) ',8-i,8-j);
+             else  fprintf(' (din[%d] + din[%d]) ',8-i,8-j);
              end
          end
      end
@@ -237,4 +239,45 @@ flag=0;
   end
      end
  end
+ %%
+ %整体共享情况 先对每个Si的S_count_2的值处理一下，也就是对应的位置叠加
+ S_count_all = zeros(13,8);
+     for j=1:13
+         for k=1:8
+              for i=1:16
+                S_count_all(j,k) =S_count_all(j,k) + S_count_2(j,k,i);
+              end
+         end
+     end
+%显示S_count_all
+S_count_all
+%显示共享
+        for i=1:13
+           for j=1:8
+            if S_count_all(i,j)>1
+             fprintf('wire share_%d_%d ;\n',8-i,8-j); 
+             fprintf('assign share_%d_%d = din[%d] ^ din[%d]; \n',8-i,8-j,8-i,8-j);
+             end
+         end
+        end
+%显示整体共享情况
+flag=0;
+ fprintf('整体共享次数：\n');
+  for m=2:32 %次数
+        for i=1:13
+           for j=1:8
+            if S_count_all(i,j)==m
+             if flag==0
+             fprintf('共享 %d 次：(din[%d] + din[%d]) ',m,8-i,8-j);
+             flag =1;
+             else  fprintf(' (din[%d] + din[%d]) ',8-i,8-j);
+             end
+         end
+     end
+   end
+  if flag==1
+   flag=0;
+   fprintf('\n');
+  end
+  end
  %%
